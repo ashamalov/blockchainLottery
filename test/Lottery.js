@@ -1,5 +1,4 @@
 const { expect } = require("chai");
-const { ethers } = require("ethers");
 const { network } = require("hardhat");
 
 describe("Lottery contract", function() {
@@ -14,6 +13,7 @@ describe("Lottery contract", function() {
         expect(await lottery.lotteryName()).to.equal(lotteryName);
         expect(await lottery.manager()).to.equal(owner.address);
 
-        const lotteryBalance = await ethers.providers.getBalance(lottery.address);
+        const lotteryBalance = await ethers.provider.getBalance(lottery.address);
+        console.log(`lottery balance: ${lotteryBalance}`)
     });
 });
