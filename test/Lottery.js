@@ -114,7 +114,7 @@ const { network } = require("hardhat");
 
             let winnerBalanceNow = await ethers.provider.getBalance(t_winnerPayAddress);
             
-            let diff = winnerBalanceNow - winnerBalanceBefore;
+            let diff = winnerBalanceNow.sub(winnerBalanceBefore);
 
             console.log(`diff: ${diff}`)
             // expect(diff).to.equal(t_winningPrice);
