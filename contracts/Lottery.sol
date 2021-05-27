@@ -5,6 +5,7 @@ import "hardhat/console.sol";
 contract Lottery {
     string public lotteryName;
     address payable public manager;
+    uint256 winningPrice; 
 
     enum LOTTERY_STATE { OPEN, CLOSED }
     LOTTERY_STATE public lotteryState;
@@ -22,8 +23,9 @@ contract Lottery {
     uint256 public lastTimeMark; 
     uint256 public duration = 1 hours; 
 
-    constructor(string memory name) payable { // calldata
-        // require((msg.value / 100) * 100 == msg.value, 'Too small'); 
+    constructor(string memory name) payable {
+        require(msg.value / 100 != 0, 'Balance is too small.');
+        require(bytes(name).length > 0, "Player name is not valid."); 
         manager = msg.sender;
         lotteryName = name;
         console.log("Lottery is started. Lottery name is %s.", lotteryName);
@@ -33,31 +35,30 @@ contract Lottery {
         lotteryState = LOTTERY_STATE.OPEN;
     }
 
-    function participate(string memory playerName) public payable {
-        require(bytes(playerName).length > 0); // err message  
+    function participate(string calldata playerName) public payable {
+        require(bytes(playerName).length > 0, "Player name is not valid.");  
         
         itsOverCheck(); 
 
-        require(lotteryState == LOTTERY_STATE.OPEN);
-        require(msg.value >= address(this).balance / 100);
+        winningPrice = address(this).balance - address(this).balance / 10;
+
+        require(lotteryState == LOTTERY_STATE.OPEN, "Lottery is closed.");
+        require(msg.value >= address(this).balance / 100, "Deposit amount < 1% of contract balance.");
 
         console.log("New participate is active. New balance = %s.", address(this).balance);    
         lastTimeMark = block.timestamp;        
         console.log("Timestamp update, new timestamp %s, expected completion time %s.", lastTimeMark, lastTimeMark + duration);
 
         if (isNewPlayer(msg.sender)) {
-            players[msg.sender].name = playerName;
-            console.log("New player %s entered, amount = %s.", players[msg.sender].name, players[msg.sender].amount);
-        } else {
-            if (keccak256(abi.encodePacked(players[msg.sender].name)) != keccak256(abi.encodePacked(playerName))) {
-                console.log("Player changed name %s to %s.", players[msg.sender].name, playerName);
-                players[msg.sender].name = playerName;
-            }
-            console.log("Player %s added %s, amount = .", players[msg.sender].name, msg.value, players[msg.sender].amount);
+            console.log("New player %s entered.", playerName);
+        } else if (keccak256(abi.encodePacked(players[msg.sender].name)) != keccak256(abi.encodePacked(playerName))) {
+            console.log("Player changed name %s to %s.", players[msg.sender].name, playerName);    
         }
 
+        players[msg.sender].name = playerName;
         players[msg.sender].amount += msg.value;
         players[msg.sender].entryCount += 1;
+        console.log("Player %s added %s, amount = %s.", players[msg.sender].name, msg.value, players[msg.sender].amount);
 
         winner = players[msg.sender];
         winnerPayAddress = msg.sender;
@@ -69,7 +70,7 @@ contract Lottery {
             declareWinner();
             lastTimeMark = block.timestamp;        
         }
-        if ((address(this).balance / 100) * 100 != address(this).balance) { // del
+        if (address(this).balance / 100 == 0) {
             lotteryState = LOTTERY_STATE.CLOSED;
             console.log("Lottery %s is closed.", lotteryName);
             manager.transfer(address(this).balance);
@@ -77,21 +78,17 @@ contract Lottery {
     }
 
     function declareWinner() private {
-        console.log("Winer is %s, gets %s.", winner.name, getWinningPrice());
+        console.log("Winer is %s, gets %s.", winner.name, winningPrice);
         if (winner.amount != 0)
         { 
-            winnerPayAddress.transfer(getWinningPrice());
+            winnerPayAddress.transfer(winningPrice);
         }
         console.log("New balance = %s.", address(this).balance); 
         winner.amount = 0;
     }
 
-    function getWinningPrice() public view returns (uint) { 
-        return address(this).balance - address(this).balance / 10;
-    }
-
     function isNewPlayer(address playerAddress) private view returns (bool) {
-        return (players[playerAddress].amount != 0);
+        return (players[playerAddress].amount == 0);
     }
 
     function getPlayer(address playerAddress) public view returns (string memory, uint256, uint256) {
