@@ -36,15 +36,14 @@ contract Lottery {
     }
 
     function participate(string calldata playerName) public payable {
-        require(bytes(playerName).length > 0, "Player name is not valid.");  
+        require(bytes(playerName).length > 0, "Player name is not valid."); 
+        require(lotteryState == LOTTERY_STATE.OPEN, "Lottery is closed.");
+        require(msg.value >= address(this).balance / 100, "Deposit amount < 1% of contract balance."); 
         
         itsOverCheck(); 
 
         winningPrice = address(this).balance - address(this).balance / 10;
-
-        require(lotteryState == LOTTERY_STATE.OPEN, "Lottery is closed.");
-        require(msg.value >= address(this).balance / 100, "Deposit amount < 1% of contract balance.");
-
+        
         console.log("New participate is active. New balance = %s.", address(this).balance);    
         lastTimeMark = block.timestamp;        
         console.log("Timestamp update, new timestamp %s, expected completion time %s.", lastTimeMark, lastTimeMark + duration);
